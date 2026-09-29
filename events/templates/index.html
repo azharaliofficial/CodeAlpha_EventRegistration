@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Event Registration</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #EDE7D9;
+    --ink: #23281F;
+    --ink-soft: #565B4E;
+    --card: #FFFFFF;
+    --line: #D9D2BE;
+    --pine: #2F5D50;
+    --pine-dark: #234840;
+    --ochre: #B4722A;
+    --danger: #A23A2E;
+    --danger-bg: #F8E8E4;
+    --ok-bg: #E7EEE3;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-padding-top: env(safe-area-inset-top, 0px); }
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  /* ---------- Header ---------- */
+  .site-header {
+    padding: 36px 24px 28px;
+    max-width: 1180px;
+    margin: 0 auto;
+  }
+  .site-header .kicker {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.78rem;
+    color: var(--pine);
+    letter-spacing: 0.02em;
+  }
+  .site-header h1 {
+    font-family: 'Fraunces', serif;
+    font-weight: 600;
+    font-size: clamp(2rem, 4.5vw, 2.9rem);
+    margin: 4px 0 6px;
+    letter-spacing: -0.01em;
+  }
+  .site-header p {
+    margin: 0;
+    color: var(--ink-soft);
+    max-width: 46ch;
+    line-height: 1.5;
+  }
+
+  /* ---------- Layout ---------- */
+  .layout {
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 0 24px 60px;
+    display: grid;
+    grid-template-columns: 1fr 340px;
+    gap: 28px;
+    align-items: start;
+  }
+  @media (max-width: 860px) {
+    .layout { grid-template-columns: 1fr; }
+    .sidebar { order: -1; }
+  }
+
+  main.events-col h2 {
+    font-family: 'Fraunces', serif;
+    font-weight: 600;
+    font-size: 1.3rem;
+    margin: 0 0 16px;
+  }
+
+  /* ---------- Global message ---------- */
+  #message {
+    position: sticky;
+    top: env(safe-area-inset-top, 0px);
+    z-index: 20;
+    margin: 0 24px 16px;
+    max-width: 1132px;
+    margin-inline: auto;
+    padding: 11px 16px;
+    border-radius: 8px;
+    font-size: 0.92rem;
+    display: none;
+  }
+  #message.error { background: var(--danger-bg); color: var(--danger); display: block; }
+  #message.success { background: var(--ok-bg); color: var(--pine-dark); display: block; }
+
+  /* ---------- Event ticket cards ---------- */
+  .event {
+    position: relative;
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 20px 22px;
+    margin-bottom: 16px;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 14px;
+    align-items: start;
+  }
+  .event::before {
+    content: "";
+    position: absolute;
+    left: 0; top: 14px; bottom: 14px;
+    width: 3px;
+    background: var(--pine);
+    border-radius: 0 3px 3px 0;
+    opacity: 0.55;
+  }
+  .event h3 {
+    font-family: 'Fraunces', serif;
+    font-weight: 600;
+    font-size: 1.18rem;
+    margin: 0 0 6px;
+  }
+  .event .when {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.82rem;
+    color: var(--ochre);
+    margin: 0 0 10px;
+  }
+  .event .desc {
+    margin: 0 0 14px;
+    color: var(--ink-soft);
+    line-height: 1.55;
+    font-size: 0.95rem;
+  }
+  .event .row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+
+  .seats {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.76rem;
+    padding: 3px 9px;
+    border-radius: 999px;
+    border: 1px solid var(--line);
+    color: var(--ink-soft);
+    white-space: nowrap;
+  }
+  .seats.low { color: var(--danger); border-color: var(--danger); }
+  .tag-ok {
+    font-size: 0.82rem;
+    color: var(--pine-dark);
+    font-weight: 500;
+  }
+  .hint { font-size: 0.85rem; color: var(--ink-soft); }
+
+  button {
+    font-family: inherit;
+    font-size: 0.9rem;
+    font-weight: 500;
+    padding: 9px 16px;
+    border-radius: 7px;
+    border: 1px solid transparent;
+    cursor: pointer;
+    background: var(--pine);
+    color: #fff;
+    transition: background 0.15s ease;
+  }
+  button:hover { background: var(--pine-dark); }
+  button.ghost {
+    background: transparent;
+    color: var(--pine);
+    border-color: var(--pine);
+  }
+  button.ghost:hover { background: rgba(47,93,80,0.08); }
+  button.danger { background: var(--danger); }
+  button.danger:hover { background: #832c22; }
+  button:focus-visible, input:focus-visible { outline: 2px solid var(--pine); outline-offset: 2px; }
+  button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .empty {
+    background: var(--card);
+    border: 1px dashed var(--line);
+    border-radius: 10px;
+    padding: 28px 20px;
+    text-align: center;
+    color: var(--ink-soft);
+  }
+
+  /* ---------- Sidebar (right) ---------- */
+  .sidebar { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 20px); }
+
+  .pass-card {
+    background: var(--ink);
+    color: #F4F1E7;
+    border-radius: 14px;
+    padding: 24px 22px;
+    margin-bottom: 16px;
+    position: relative;
+    overflow: hidden;
+  }
+  .pass-card::after {
+    content: "";
+    position: absolute;
+    right: -30px; top: -30px;
+    width: 110px; height: 110px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(180,114,42,0.35), transparent 70%);
+  }
+  .pass-card .eyebrow {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.72rem;
+    color: #C9C2AC;
+    margin-bottom: 10px;
+  }
+  .pass-card h3 {
+    font-family: 'Fraunces', serif;
+    font-size: 1.2rem;
+    font-weight: 600;
+    margin: 0 0 16px;
+  }
+
+  .field { margin-bottom: 10px; }
+  .field input {
+    width: 100%;
+    padding: 10px 12px;
+    font-size: 0.92rem;
+    border-radius: 7px;
+    border: 1px solid #454A3D;
+    background: #2E332A;
+    color: #F4F1E7;
+  }
+  .field input::placeholder { color: #8D8B77; }
+  .field input:focus-visible { outline: 2px solid var(--ochre); outline-offset: 1px; }
+  .pass-actions { display: flex; gap: 8px; margin-top: 4px; }
+  .pass-actions button { flex: 1; }
+  .pass-card .ghost { border-color: #6B7062; color: #F4F1E7; }
+  .pass-card .ghost:hover { background: rgba(255,255,255,0.08); }
+
+  .avatar {
+    width: 42px; height: 42px;
+    border-radius: 50%;
+    background: var(--ochre);
+    color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Fraunces', serif;
+    font-weight: 600;
+    font-size: 1.05rem;
+    margin-bottom: 12px;
+  }
+  .pass-card .who { font-size: 0.95rem; color: #C9C2AC; margin-bottom: 2px; }
+  .pass-card .who b { color: #F4F1E7; font-weight: 600; }
+
+  .sidebar h4 {
+    font-family: 'Fraunces', serif;
+    font-size: 1rem;
+    font-weight: 600;
+    margin: 0 0 10px;
+  }
+  .mini-reg {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 9px;
+    padding: 12px 14px;
+    margin-bottom: 10px;
+  }
+  .mini-reg .t { font-weight: 600; font-size: 0.92rem; margin-bottom: 2px; }
+  .mini-reg .m { font-family: 'IBM Plex Mono', monospace; font-size: 0.75rem; color: var(--ink-soft); margin-bottom: 8px; }
+  .mini-reg button { width: 100%; font-size: 0.82rem; padding: 7px 10px; }
+
+  .hidden { display: none; }
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="kicker">CODEALPHA · BACKEND TASK 2</div>
+  <h1>Event Registration</h1>
+  <p>Browse upcoming events and hold your seat — sign in from the pass on the right to register.</p>
+</header>
+
+<div id="message" role="alert"></div>
+
+<div class="layout">
+  <main class="events-col">
+    <h2>Upcoming events</h2>
+    <div id="events"><p class="hint">Loading events…</p></div>
+  </main>
+
+  <aside class="sidebar">
+    <section id="authCard" class="pass-card">
+      <div class="eyebrow">YOUR PASS</div>
+      <h3>Sign in to register</h3>
+      <div class="field"><input id="username" placeholder="Username" autocomplete="username"></div>
+      <div class="field"><input id="password" type="password" placeholder="Password (min 6 characters)" autocomplete="current-password"></div>
+      <div class="pass-actions">
+        <button id="loginBtn">Log in</button>
+        <button id="signupBtn" class="ghost">Sign up</button>
+      </div>
+    </section>
+
+    <section id="userCard" class="pass-card hidden">
+      <div class="eyebrow">YOUR PASS</div>
+      <div class="avatar" id="avatarInitial"></div>
+      <div class="who">Signed in as<br><b id="whoName"></b></div>
+      <div class="pass-actions" style="margin-top:14px;">
+        <button id="logoutBtn" class="ghost" style="flex:1;">Log out</button>
+      </div>
+    </section>
+
+    <section id="mySection" class="hidden">
+      <h4>My registrations</h4>
+      <div id="myRegs"></div>
+    </section>
+  </aside>
+</div>
+
+<script>
+  let token = null;
+  try { token = localStorage.getItem("token"); } catch (e) {}
+  let currentUser = null;
+  try { currentUser = localStorage.getItem("username"); } catch (e) {}
+
+  const $ = id => document.getElementById(id);
+
+  function show(msg, type) {
+    const box = $("message");
+    box.textContent = msg;
+    box.className = type;
+    setTimeout(() => { box.className = ""; }, 4000);
+  }
+
+  async function api(path, method = "GET", body = null) {
+    const headers = { "Content-Type": "application/json" };
+    if (token) headers["Authorization"] = "Token " + token;
+    const res = await fetch("/api/" + path, { method, headers, body: body ? JSON.stringify(body) : null });
+    let data = {};
+    try { data = await res.json(); } catch (e) {}
+    if (res.status === 401) { logout(false); throw new Error("Please log in again."); }
+    if (!res.ok) throw new Error(data.error || data.detail || "Something went wrong.");
+    return data;
+  }
+
+  function esc(t) {
+    const d = document.createElement("div");
+    d.textContent = t;
+    return d.innerHTML;
+  }
+  function fmtDate(iso) {
+    return new Date(iso).toLocaleString([], { dateStyle: "medium", timeStyle: "short" });
+  }
+
+  function renderHeader() {
+    const loggedIn = !!token;
+    $("authCard").classList.toggle("hidden", loggedIn);
+    $("userCard").classList.toggle("hidden", !loggedIn);
+    $("mySection").classList.toggle("hidden", !loggedIn);
+    if (loggedIn) {
+      $("whoName").textContent = currentUser || "";
+      $("avatarInitial").textContent = (currentUser || "?").charAt(0).toUpperCase();
+    }
+  }
+
+  function saveSession(data) {
+    token = data.token; currentUser = data.username;
+    try { localStorage.setItem("token", token); localStorage.setItem("username", currentUser); } catch (e) {}
+  }
+
+    function logout(notify) {
+      token = null; currentUser = null;
+      try { localStorage.removeItem("token"); localStorage.removeItem("username"); } catch (e) {}
+      renderHeader(); loadEvents(); $("myRegs").innerHTML = "";
+      if (notify) show("Logged out.", "success");
+    }
+
+  async function auth(kind) {
+    try {
+      const data = await api(kind, "POST", { username: $("username").value, password: $("password").value });
+      saveSession(data);
+      $("username").value = ""; $("password").value = "";
+      show(kind === "signup/" ? "Account created." : "Logged in.", "success");
+      refresh();
+    } catch (e) { show(e.message, "error"); }
+  }
+
+  async function loadEvents() {
+    try {
+      const events = await api("events/");
+      if (!events.length) {
+        $("events").innerHTML = '<div class="empty">No events yet. Add some from the admin panel at /admin/.</div>';
+        return;
+      }
+      $("events").innerHTML = events.map(ev => {
+        let action;
+        if (ev.is_registered) action = '<span class="tag-ok">✓ You\'re registered</span>';
+        else if (ev.seats_left <= 0) action = '<span class="hint">Full</span>';
+        else if (!token) action = '<span class="hint">Sign in to register</span>';
+        else action = `<button data-register="${ev.id}">Register</button>`;
+        const low = ev.seats_left > 0 && ev.seats_left <= Math.max(1, Math.round(ev.capacity * 0.15));
+        return `<div class="event">
+          <div>
+            <h3>${esc(ev.title)}</h3>
+            <p class="when">${fmtDate(ev.date)} · ${esc(ev.location)}</p>
+            <p class="desc">${esc(ev.description)}</p>
+            <div class="row">
+              <span class="seats${low ? ' low' : ''}">${ev.seats_left} of ${ev.capacity} seats left</span>
+              ${action}
+            </div>
+          </div>
+        </div>`;
+      }).join("");
+      document.querySelectorAll("[data-register]").forEach(b =>
+        b.onclick = () => registerFor(b.dataset.register));
+    } catch (e) { show(e.message, "error"); }
+  }
+
+  async function loadMyRegs() {
+    if (!token) return;
+    try {
+      const regs = await api("my-registrations/");
+      $("myRegs").innerHTML = regs.length ? regs.map(r => `<div class="mini-reg">
+          <div class="t">${esc(r.event.title)}</div>
+          <div class="m">${fmtDate(r.event.date)}</div>
+          <button class="danger" data-cancel="${r.id}">Cancel registration</button>
+        </div>`).join("") : '<p class="hint">No registrations yet.</p>';
+      document.querySelectorAll("[data-cancel]").forEach(b =>
+        b.onclick = () => cancelReg(b.dataset.cancel));
+    } catch (e) { show(e.message, "error"); }
+  }
+
+  async function registerFor(id) {
+    try { await api(`events/${id}/register/`, "POST"); show("Registration successful.", "success"); refresh(); }
+    catch (e) { show(e.message, "error"); }
+  }
+
+  async function cancelReg(id) {
+    if (!confirm("Cancel this registration?")) return;
+    try { await api(`registrations/${id}/`, "DELETE"); show("Registration cancelled.", "success"); refresh(); }
+    catch (e) { show(e.message, "error"); }
+  }
+
+  function refresh() { renderHeader(); loadEvents(); loadMyRegs(); }
+
+  $("loginBtn").onclick = () => auth("login/");
+  $("signupBtn").onclick = () => auth("signup/");
+  $("logoutBtn").onclick = () => logout(true);
+  refresh();
+</script>
+</body>
+</html>
